@@ -1,0 +1,73 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@token = YOUR_AUTH_TOKEN_HERE
+@bookingId = YOUR_BOOKING_ID_HERE
+@listingId = YOUR_LISTING_ID_HERE
+@reviewId = YOUR_REVIEW_ID_HERE
+
+### 1. Vérifier l'éligibilité pour laisser un avis
+GET {{baseUrl}}/reviews/can-review/{{bookingId}}
+Authorization: Bearer {{token}}
+
+### 2. Créer un avis
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "rating": 4.5,
+  "ratings": {
+    "cleanliness": 5,
+    "accuracy": 4,
+    "checkIn": 5,
+    "communication": 5,
+    "location": 4,
+    "value": 4
+  },
+  "comment": "Excellent séjour ! La propriété était très propre et conforme à la description. L'hôte était très accueillant et disponible. Je recommande vivement cette location."
+}
+
+### 3. Obtenir les avis d'une annonce
+GET {{baseUrl}}/reviews/listing/{{listingId}}?page=1&limit=10
+
+### 4. Obtenir un avis par ID
+GET {{baseUrl}}/reviews/{{reviewId}}
+
+### 5. Répondre à un avis (Hôte)
+POST {{baseUrl}}/reviews/{{reviewId}}/respond
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "response": "Merci pour votre avis ! Nous sommes ravis que vous ayez apprécié votre séjour chez nous."
+}
+
+### 6. Supprimer un avis
+DELETE {{baseUrl}}/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+
+### 7. Test - Créer un avis avec note invalide (devrait échouer)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "rating": 6,
+  "comment": "Test avec note invalide"
+}
+
+### 8. Test - Créer un avis avec commentaire trop court (devrait échouer)
+POST {{baseUrl}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": "{{bookingId}}",
+  "rating": 4,
+  "comment": "Court"
+}
+
+### 9. Obtenir les avis d'un utilisateur
+GET {{baseUrl}}/reviews/user/USER_ID_HERE?page=1&limit=10
