@@ -1,17 +1,23 @@
 const admin = require('firebase-admin');
 
-// Initialiser Firebase Admin SDK
 const initializeFirebase = () => {
   try {
     if (admin.apps.length === 0) {
-      // Construire le service account depuis les variables d'environnement
+      
+      // Nettoyage ultra-robuste de la clé privée
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+      if (privateKey) {
+        // 1. Enlever les guillemets éventuels aux extrémités
+        privateKey = privateKey.trim().replace(/^"(.*)"$/, '$1');
+        // 2. Remplacer les \n textuels par de vrais sauts de ligne
+        privateKey = privateKey.replace(/\\n/g, '\n');
+      }
+
       const serviceAccount = {
         type: process.env.FIREBASE_TYPE || "service_account",
         project_id: process.env.FIREBASE_PROJECT_ID || "eliotel-4c571",
         private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY
-          ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-          : undefined,
+        private_key: privateKey, // Utilisation de la clé nettoyée
         client_email: process.env.FIREBASE_CLIENT_EMAIL,
         client_id: process.env.FIREBASE_CLIENT_ID,
         auth_uri: process.env.FIREBASE_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
@@ -21,9 +27,8 @@ const initializeFirebase = () => {
         universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN || "googleapis.com"
       };
 
-      // Vérifier que les credentials essentiels sont présents
       if (!serviceAccount.private_key || !serviceAccount.client_email) {
-        throw new Error('Firebase credentials manquants dans .env (FIREBASE_PRIVATE_KEY et FIREBASE_CLIENT_EMAIL requis)');
+        throw new Error('Credentials manquants (FIREBASE_PRIVATE_KEY ou FIREBASE_CLIENT_EMAIL)');
       }
 
       admin.initializeApp({
@@ -32,14 +37,9 @@ const initializeFirebase = () => {
       });
 
       console.log('✅ Firebase Admin SDK initialisé avec succès');
-      console.log(`📧 Client Email: ${serviceAccount.client_email}`);
-      console.log(`🔑 Project ID: ${serviceAccount.project_id}`);
-    } else {
-      console.log('ℹ️  Firebase Admin SDK déjà initialisé');
     }
   } catch (error) {
     console.error('❌ Erreur initialisation Firebase Admin SDK:', error.message);
-    console.error('💡 Vérifiez que les variables FIREBASE_* sont correctement définies dans .env');
   }
 };
 
