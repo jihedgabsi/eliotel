@@ -47,7 +47,16 @@ const upload = multer({
 // Middleware pour uploader les images vers l'API externe
 const uploadToImageServer = async (req, res, next) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    // Gérer à la fois req.file (single) et req.files (array)
+    const files = [];
+    if (req.file) {
+      files.push(req.file);
+    } else if (req.files && req.files.length > 0) {
+      files.push(...req.files);
+    }
+
+    // Si aucun fichier, passer au middleware suivant
+    if (files.length === 0) {
       return next();
     }
 
@@ -58,7 +67,7 @@ const uploadToImageServer = async (req, res, next) => {
       throw new Error('IMAGE_SERVER_URL is not configured');
     }
 
-    for (const file of req.files) {
+    for (const file of files) {
       // Create FormData properly for Node.js
       const formData = new FormData();
       
@@ -89,7 +98,7 @@ const uploadToImageServer = async (req, res, next) => {
       imageUrls.push(imageResponse.data.imageUrl);
     }
 
-    if (imageUrls.length === 0 && req.files.length > 0) {
+    if (imageUrls.length === 0 && files.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'Failed to upload any images successfully'

@@ -1,0 +1,16 @@
+### Test Avatar Upload
+# Remplacez YOUR_JWT_TOKEN par votre token d'authentification
+# Remplacez le chemin de l'image par un fichier image valide sur votre système
+
+POST http://localhost:3002/api/users/avatar
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="avatar"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
