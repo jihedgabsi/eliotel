@@ -12,6 +12,7 @@ const chatFirebaseRoutes = require('./routes/chatFirebaseRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const testRoutes = require('./routes/testRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();

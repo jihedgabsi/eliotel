@@ -43,7 +43,7 @@ router.post('/', auth, async (req, res) => {
 // @desc    Obtenir tous les signalements (pour l'admin)
 // @route   GET /api/reports
 // @access  Private/Admin
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', auth, async (req, res) => {
     try {
         // Vérifier si l'utilisateur est admin
         if (req.user.role !== 'admin') {
