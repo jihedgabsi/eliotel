@@ -103,8 +103,22 @@ class ListingService {
   // helper pour obtenir les utilisateurs bloqués
   async _getBlockedUsers(userId) {
     if (!userId) return [];
+
+    const mongoose = require('mongoose');
+
+    // Utilisateurs que j'ai bloqués
     const user = await User.findById(userId).select('blockedUsers');
-    return user ? user.blockedUsers : [];
+    const blockedByMe = user ? user.blockedUsers : [];
+
+    // Utilisateurs qui M'ONT bloqué
+    const whoBlockedMe = await User.find({ blockedUsers: userId }).select('_id');
+    const whoBlockedMeIds = whoBlockedMe.map(u => u._id);
+
+    // Convertir tout en ObjectId pour s'assurer que l'agrégation fonctionne
+    const allBlockedRaw = [...blockedByMe, ...whoBlockedMeIds];
+    return allBlockedRaw.map(id =>
+      id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(id)
+    );
   }
 
   // Obtenir tous les listings avec filtres
