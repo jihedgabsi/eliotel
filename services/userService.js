@@ -25,7 +25,9 @@ class UserService {
   // Authentifier un utilisateur
   async authenticateUser(email, password) {
     try {
-      const user = await User.findOne({ email }).select('+password');
+      const user = await User.findOne({ email })
+        .select('+password')
+        .populate('blockedUsers', 'firstName lastName avatar email');
       if (!user) {
         throw new Error('Email ou mot de passe incorrect');
       }
@@ -48,7 +50,7 @@ class UserService {
   async authenticateWithGoogle({ idToken, email, displayName, photoURL }) {
     try {
       // Vérifier si l'utilisateur existe déjà
-      let user = await User.findOne({ email });
+      let user = await User.findOne({ email }).populate('blockedUsers', 'firstName lastName avatar email');
       let isNewUser = false;
 
       if (!user) {
@@ -100,6 +102,7 @@ class UserService {
 
       // Utiliser la méthode du modèle pour devenir hôte
       await user.becomeHost();
+      await user.populate('blockedUsers', 'firstName lastName avatar email');
 
       return {
         success: true,
@@ -125,6 +128,7 @@ class UserService {
 
       // Utiliser la méthode du modèle pour redevenir voyageur
       await user.becomeGuest();
+      await user.populate('blockedUsers', 'firstName lastName avatar email');
 
       return {
         success: true,
@@ -139,7 +143,7 @@ class UserService {
   // Obtenir le profil utilisateur
   async getUserProfile(userId) {
     try {
-      const user = await User.findById(userId);
+      const user = await User.findById(userId).populate('blockedUsers', 'firstName lastName avatar email');
       if (!user) {
         throw new Error('Utilisateur non trouvé');
       }
@@ -156,10 +160,8 @@ class UserService {
         userId,
         // $set est utilisé pour mettre à jour uniquement le champ 'avatar'
         { $set: { avatar: avatarUrl } },
-        // { new: true } retourne le document mis à jour
-        // { runValidators: true } s'assure que les validateurs du schéma sont exécutés
         { new: true, runValidators: true }
-      );
+      ).populate('blockedUsers', 'firstName lastName avatar email');
 
       if (!user) {
         throw new Error('Utilisateur non trouvé');
@@ -187,7 +189,7 @@ class UserService {
         userId,
         { $set: allowedUpdates },
         { new: true, runValidators: true }
-      );
+      ).populate('blockedUsers', 'firstName lastName avatar email');
 
       if (!user) {
         throw new Error('Utilisateur non trouvé');
@@ -219,6 +221,7 @@ class UserService {
       });
 
       await user.save();
+      await user.populate('blockedUsers', 'firstName lastName avatar email');
       return user;
     } catch (error) {
       throw error;
