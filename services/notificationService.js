@@ -14,7 +14,7 @@ class NotificationService {
     try {
       // Récupérer l'utilisateur et son token FCM
       const user = await User.findById(userId).select('fcmToken firstName lastName');
-      
+
       if (!user) {
         console.log(`Utilisateur ${userId} non trouvé`);
         return { success: false, message: 'Utilisateur non trouvé' };
@@ -59,7 +59,7 @@ class NotificationService {
       // Envoyer la notification
       const response = await admin.messaging().send(message);
       console.log(`Notification envoyée avec succès à ${user.firstName} ${user.lastName}:`, response);
-      
+
       return {
         success: true,
         messageId: response,
@@ -67,14 +67,14 @@ class NotificationService {
       };
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la notification:', error);
-      
+
       // Si le token est invalide, le supprimer de la base de données
-      if (error.code === 'messaging/invalid-registration-token' || 
-          error.code === 'messaging/registration-token-not-registered') {
+      if (error.code === 'messaging/invalid-registration-token' ||
+        error.code === 'messaging/registration-token-not-registered') {
         await User.findByIdAndUpdate(userId, { $set: { fcmToken: null } });
         console.log(`Token FCM invalide supprimé pour l'utilisateur ${userId}`);
       }
-      
+
       return {
         success: false,
         message: error.message,
@@ -90,7 +90,7 @@ class NotificationService {
     try {
       const title = '🎉 Nouvelle réservation !';
       const body = `${booking.guest.firstName} souhaite réserver votre propriété du ${this.formatDate(booking.checkIn)} au ${this.formatDate(booking.checkOut)}`;
-      
+
       const data = {
         type: 'new_booking',
         bookingId: booking._id.toString(),
@@ -113,7 +113,7 @@ class NotificationService {
     try {
       const title = '✅ Réservation confirmée !';
       const body = `Votre réservation chez ${booking.host.firstName} a été confirmée pour le ${this.formatDate(booking.checkIn)}`;
-      
+
       const data = {
         type: 'booking_confirmed',
         bookingId: booking._id.toString(),
@@ -136,7 +136,7 @@ class NotificationService {
     try {
       const title = '❌ Réservation refusée';
       const body = `Votre demande de réservation chez ${booking.host.firstName} a été refusée`;
-      
+
       const data = {
         type: 'booking_rejected',
         bookingId: booking._id.toString(),
@@ -160,12 +160,12 @@ class NotificationService {
       const cancelledByGuest = booking.guest._id.toString() === cancelledByUserId.toString();
       const recipientId = cancelledByGuest ? booking.host._id : booking.guest._id;
       const cancellerName = cancelledByGuest ? booking.guest.firstName : booking.host.firstName;
-      
+
       const title = '🚫 Réservation annulée';
-      const body = cancelledByGuest 
+      const body = cancelledByGuest
         ? `${cancellerName} a annulé sa réservation du ${this.formatDate(booking.checkIn)}`
         : `${cancellerName} a annulé votre réservation du ${this.formatDate(booking.checkIn)}`;
-      
+
       const data = {
         type: 'booking_cancelled',
         bookingId: booking._id.toString(),
@@ -189,7 +189,7 @@ class NotificationService {
       // Notifier le voyageur
       const guestTitle = '🎊 Séjour terminé !';
       const guestBody = `Merci d'avoir séjourné chez ${booking.host.firstName}. N'oubliez pas de laisser un avis !`;
-      
+
       const guestData = {
         type: 'booking_completed',
         bookingId: booking._id.toString(),
@@ -201,7 +201,7 @@ class NotificationService {
       // Notifier l'hôte
       const hostTitle = '🎊 Séjour terminé !';
       const hostBody = `Le séjour de ${booking.guest.firstName} est terminé. N'oubliez pas de laisser un avis !`;
-      
+
       const hostData = {
         type: 'booking_completed',
         bookingId: booking._id.toString(),
@@ -232,7 +232,7 @@ class NotificationService {
     try {
       const title = '🏠 Rappel de check-in';
       const body = `Votre check-in chez ${booking.host.firstName} est prévu demain !`;
-      
+
       const data = {
         type: 'checkin_reminder',
         bookingId: booking._id.toString(),
@@ -245,6 +245,37 @@ class NotificationService {
     } catch (error) {
       console.error('Erreur notifyCheckInReminder:', error);
       return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Envoyer une notification aux modérateurs (admins) lors d'un signalement
+   */
+  async notifyModeratorsReport(report) {
+    try {
+      const admins = await User.find({ role: 'admin' }).select('fcmToken');
+
+      const title = '⚠️ Nouveau signalement !';
+      const body = `Un nouveau signalement pour "${report.reason}" a été reçu et nécessite une action sous 24h.`;
+
+      const data = {
+        type: 'new_report',
+        reportId: report._id.toString(),
+        reason: report.reason
+      };
+
+      const results = [];
+      for (const adminUser of admins) {
+        if (adminUser.fcmToken) {
+          results.push(await this.sendNotificationToUser(adminUser._id, title, body, data));
+        }
+      }
+
+      console.log(`Signalement notifié à ${results.filter(r => r.success).length} administrateurs`);
+      return results;
+    } catch (error) {
+      console.error('Erreur notifyModeratorsReport:', error);
+      return [];
     }
   }
 

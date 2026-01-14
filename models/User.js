@@ -78,9 +78,15 @@ const userSchema = new mongoose.Schema({
     },
     joinedDate: {
       type: Date,
-      default: null
+      default: Date.now
     }
-  }
+  },
+  blockedUsers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  ]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

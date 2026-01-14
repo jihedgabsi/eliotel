@@ -28,15 +28,15 @@ class ListingService {
 
     const fullAddress = `${address.city}, ${address.country}`;
     console.log('Tentative de géocodage pour:', fullAddress);
-    
+
     let coordinates = mockCoordinates[fullAddress];
-    
+
     if (!coordinates) {
       // Essayer avec juste la ville
-      const cityKey = Object.keys(mockCoordinates).find(key => 
+      const cityKey = Object.keys(mockCoordinates).find(key =>
         key.toLowerCase().includes(address.city.toLowerCase())
       );
-      
+
       if (cityKey) {
         coordinates = mockCoordinates[cityKey];
         console.log('Coordonnées trouvées par recherche de ville:', coordinates);
@@ -90,26 +90,38 @@ class ListingService {
       });
 
       await listing.save();
-      
+
       // Ne pas populer le host lors de la création pour éviter les problèmes de parsing côté client
       // Le client n'a besoin que de l'ID lors de la création
-      
+
       return listing;
     } catch (error) {
       throw error;
     }
   }
 
+  // helper pour obtenir les utilisateurs bloqués
+  async _getBlockedUsers(userId) {
+    if (!userId) return [];
+    const user = await User.findById(userId).select('blockedUsers');
+    return user ? user.blockedUsers : [];
+  }
+
   // Obtenir tous les listings avec filtres
-  async getListings(filters = {}, page = 1, limit = 10) {
+  async getListings(filters = {}, page = 1, limit = 10, requestingUserId = null) {
     try {
       const skip = (page - 1) * limit;
       const minListings = 20; // Minimum de listings à retourner si disponibles
-      
+
+      const blockedUsers = await this._getBlockedUsers(requestingUserId);
+
       // Si latitude et longitude sont fournies, utiliser la recherche géographique
       if (filters.latitude && filters.longitude) {
         // Construire les critères de base (sans distance)
-        const baseCriteria = { status: 'active' };
+        const baseCriteria = {
+          status: 'active',
+          host: { $nin: blockedUsers }
+        };
 
         // Ajouter les autres filtres
         if (filters.propertyType) baseCriteria.propertyType = filters.propertyType;
@@ -117,7 +129,7 @@ class ListingService {
         if (filters.guests) baseCriteria['capacity.guests'] = { $gte: filters.guests };
         if (filters.city) baseCriteria['address.city'] = { $regex: filters.city, $options: 'i' };
         if (filters.country) baseCriteria['address.country'] = { $regex: filters.country, $options: 'i' };
-        
+
         if (filters.minPrice || filters.maxPrice) {
           baseCriteria['pricing.basePrice'] = {};
           if (filters.minPrice) baseCriteria['pricing.basePrice'].$gte = filters.minPrice;
@@ -197,7 +209,10 @@ class ListingService {
       }
 
       // Sinon, recherche normale avec pagination aléatoire
-      const searchCriteria = { status: 'active' };
+      const searchCriteria = {
+        status: 'active',
+        host: { $nin: blockedUsers }
+      };
 
       if (filters.propertyType) searchCriteria.propertyType = filters.propertyType;
       if (filters.roomType) searchCriteria.roomType = filters.roomType;
@@ -217,7 +232,7 @@ class ListingService {
 
       // Utiliser l'agrégation pour obtenir des résultats aléatoires à chaque scroll
       const total = await Listing.countDocuments(searchCriteria);
-      
+
       const listings = await Listing.aggregate([
         { $match: searchCriteria },
         { $sample: { size: Math.min(limit * 3, total) } },
@@ -249,9 +264,10 @@ class ListingService {
   }
 
   // Rechercher des listings par proximité géographique
-  async searchNearby(longitude, latitude, maxDistance = 10000, filters = {}, page = 1, limit = 10) {
+  async searchNearby(longitude, latitude, maxDistance = 10000, filters = {}, page = 1, limit = 10, requestingUserId = null) {
     try {
       const skip = (page - 1) * limit;
+      const blockedUsers = await this._getBlockedUsers(requestingUserId);
 
       // Construire les critères de recherche avec géolocalisation
       const searchCriteria = {
@@ -264,7 +280,8 @@ class ListingService {
             $maxDistance: maxDistance
           }
         },
-        status: 'active'
+        status: 'active',
+        host: { $nin: blockedUsers }
       };
 
       // Ajouter les filtres supplémentaires
@@ -355,7 +372,7 @@ class ListingService {
   async updateListing(listingId, updateData, hostId) {
     try {
       const listing = await Listing.findById(listingId);
-      
+
       if (!listing) {
         throw new Error('Annonce non trouvée');
       }
@@ -397,7 +414,7 @@ class ListingService {
         }
 
         updateData.images = finalImages;
-        
+
         // Supprimer les champs temporaires
         delete updateData.existingImages;
         delete updateData.newImages;
@@ -419,7 +436,7 @@ class ListingService {
   async deleteListing(listingId, hostId) {
     try {
       const listing = await Listing.findById(listingId);
-      
+
       if (!listing) {
         throw new Error('Annonce non trouvée');
       }
@@ -444,7 +461,7 @@ class ListingService {
   async updateListingStatus(listingId, status, hostId) {
     try {
       const listing = await Listing.findById(listingId);
-      
+
       if (!listing) {
         throw new Error('Annonce non trouvée');
       }
@@ -495,13 +512,17 @@ class ListingService {
   }
 
   // Rechercher des listings disponibles avec filtrage par dates
-  async searchAvailableListings(filters = {}, checkIn = null, checkOut = null, page = 1, limit = 100) {
+  async searchAvailableListings(filters = {}, checkIn = null, checkOut = null, page = 1, limit = 100, requestingUserId = null) {
     try {
       const Booking = require('../models/Booking');
       const skip = (page - 1) * limit;
-      
+      const blockedUsers = await this._getBlockedUsers(requestingUserId);
+
       // Construire les critères de recherche de base
-      const searchCriteria = { status: 'active' };
+      const searchCriteria = {
+        status: 'active',
+        host: { $nin: blockedUsers }
+      };
 
       if (filters.city) {
         searchCriteria['address.city'] = { $regex: filters.city, $options: 'i' };
@@ -527,7 +548,7 @@ class ListingService {
       // Si des dates sont fournies, filtrer par disponibilité
       if (checkIn && checkOut) {
         console.log('Filtrage par disponibilité pour les dates:', checkIn, 'à', checkOut);
-        
+
         // Récupérer toutes les réservations confirmées qui chevauchent les dates demandées
         const overlappingBookings = await Booking.find({
           status: { $in: ['pending', 'confirmed'] },
@@ -550,11 +571,11 @@ class ListingService {
 
         // Extraire les IDs des listings occupés
         const occupiedListingIds = overlappingBookings.map(booking => booking.listing.toString());
-        
+
         console.log(`${occupiedListingIds.length} listings occupés trouvés`);
 
         // Filtrer les listings pour exclure ceux qui sont occupés
-        listings = listings.filter(listing => 
+        listings = listings.filter(listing =>
           !occupiedListingIds.includes(listing._id.toString())
         );
 
@@ -584,7 +605,7 @@ class ListingService {
   async getLocationSuggestions(query = '', type = 'city') {
     try {
       const searchField = type === 'city' ? 'address.city' : 'address.country';
-      
+
       // Utiliser l'agrégation pour obtenir les valeurs uniques avec normalisation
       const suggestions = await Listing.aggregate([
         {

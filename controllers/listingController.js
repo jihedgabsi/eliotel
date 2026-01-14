@@ -180,7 +180,8 @@ class ListingController {
         filters.maxDistance = maxDistance;
       }
 
-      const result = await listingService.getListings(filters, page, limit);
+      const requestingUserId = req.user ? req.user.userId : null;
+      const result = await listingService.getListings(filters, page, limit, requestingUserId);
 
       res.status(200).json({
         success: true,
@@ -211,12 +212,14 @@ class ListingController {
       const checkIn = req.query.checkIn ? new Date(req.query.checkIn) : null;
       const checkOut = req.query.checkOut ? new Date(req.query.checkOut) : null;
 
+      const requestingUserId = req.user ? req.user.userId : null;
       const result = await listingService.searchAvailableListings(
         filters,
         checkIn,
         checkOut,
         page,
-        limit
+        limit,
+        requestingUserId
       );
 
       res.status(200).json({
@@ -253,13 +256,15 @@ class ListingController {
       if (req.query.maxPrice) filters.maxPrice = parseFloat(req.query.maxPrice);
       if (req.query.guests) filters.guests = parseInt(req.query.guests);
 
+      const requestingUserId = req.user ? req.user.userId : null;
       const result = await listingService.searchNearby(
         parseFloat(longitude),
         parseFloat(latitude),
         maxDistance,
         filters,
         page,
-        limit
+        limit,
+        requestingUserId
       );
 
       res.status(200).json({

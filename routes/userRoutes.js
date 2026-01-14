@@ -59,6 +59,11 @@ router.get('/search', validateSearchQuery, userController.searchUsers);
 // Profil d'un hôte (authentification requise)
 router.get('/host/:userId', validateUserObjectId, userController.getHostProfile);
 
+// Bloquer / Débloquer un utilisateur
+router.post('/block/:userId', validateUserObjectId, userController.blockUser);
+router.post('/unblock/:userId', validateUserObjectId, userController.unblockUser);
+router.get('/blocked-users', userController.getBlockedUsers);
+
 // Routes de favoris (AVANT les routes admin pour éviter les conflits)
 router.get('/favorites', userController.getFavorites);
 router.post('/favorites/cleanup', userController.cleanupFavorites);

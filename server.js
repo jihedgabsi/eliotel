@@ -41,6 +41,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat-firebase', chatFirebaseRoutes);
 app.use('/api/chat', chatRoutes); // Routes de notification chat
+app.use('/api/reports', reportRoutes);
 app.use('/api/test', testRoutes); // Routes de test
 app.use('/', uploadRoutes); // Route d'upload sans préfixe /api
 

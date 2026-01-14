@@ -4,68 +4,68 @@ const { validationResult } = require('express-validator');
 class UserController {
 
 
-   // ------------------------------------------------------------------
-// NOUVELLES MÉTHODES POUR LA GESTION DES FAVORIS
-// ------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // NOUVELLES MÉTHODES POUR LA GESTION DES FAVORIS
+  // ------------------------------------------------------------------
 
-// 1. Ajouter/Retirer un favori
-async toggleFavorite(req, res, next) {
+  // 1. Ajouter/Retirer un favori
+  async toggleFavorite(req, res, next) {
     try {
-        // L'ID utilisateur est extrait du token JWT (via le middleware 'auth')
-        const userId = req.user.userId;
-        const { listingId } = req.params;
+      // L'ID utilisateur est extrait du token JWT (via le middleware 'auth')
+      const userId = req.user.userId;
+      const { listingId } = req.params;
 
-        // Appel au service
-        const result = await userService.toggleFavorite(userId, listingId);
+      // Appel au service
+      const result = await userService.toggleFavorite(userId, listingId);
 
-        res.status(200).json({
-            success: true,
-            message: `Listing ${result.action} des favoris avec succès.`,
-            data: {
-                favoriteListings: result.user.favoriteListings
-            }
-        });
+      res.status(200).json({
+        success: true,
+        message: `Listing ${result.action} des favoris avec succès.`,
+        data: {
+          favoriteListings: result.user.favoriteListings
+        }
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-}
+  }
 
-// 2. Obtenir la liste des favoris
-async getFavorites(req, res, next) {
+  // 2. Obtenir la liste des favoris
+  async getFavorites(req, res, next) {
     try {
-        const userId = req.user.userId;
+      const userId = req.user.userId;
 
-        // Appel au service pour récupérer la liste enrichie (avec populate)
-        const favorites = await userService.getFavoriteListings(userId);
+      // Appel au service pour récupérer la liste enrichie (avec populate)
+      const favorites = await userService.getFavoriteListings(userId);
 
-        res.status(200).json({
-            success: true,
-            data: {
-                favorites,
-                count: favorites.length
-            }
-        });
+      res.status(200).json({
+        success: true,
+        data: {
+          favorites,
+          count: favorites.length
+        }
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-}
+  }
 
-// 3. Nettoyer les favoris invalides
-async cleanupFavorites(req, res, next) {
+  // 3. Nettoyer les favoris invalides
+  async cleanupFavorites(req, res, next) {
     try {
-        const userId = req.user.userId;
+      const userId = req.user.userId;
 
-        const result = await userService.cleanupInvalidFavorites(userId);
+      const result = await userService.cleanupInvalidFavorites(userId);
 
-        res.status(200).json({
-            success: true,
-            message: `${result.cleaned} favoris invalides supprimés. ${result.remaining} favoris restants.`,
-            data: result
-        });
+      res.status(200).json({
+        success: true,
+        message: `${result.cleaned} favoris invalides supprimés. ${result.remaining} favoris restants.`,
+        data: result
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-}
+  }
 
 
 
@@ -83,7 +83,7 @@ async cleanupFavorites(req, res, next) {
       }
 
       const result = await userService.createUser(req.body);
-      
+
       res.status(201).json({
         success: true,
         message: 'Utilisateur créé avec succès',
@@ -111,7 +111,7 @@ async cleanupFavorites(req, res, next) {
 
       const { email, password } = req.body;
       const result = await userService.authenticateUser(email, password);
-      
+
       res.status(200).json({
         success: true,
         message: 'Connexion réussie',
@@ -143,7 +143,7 @@ async cleanupFavorites(req, res, next) {
         displayName,
         photoURL
       });
-      
+
       res.status(200).json({
         success: true,
         message: result.isNewUser ? 'Compte créé avec succès' : 'Connexion réussie',
@@ -163,7 +163,7 @@ async cleanupFavorites(req, res, next) {
     try {
       const userId = req.user.userId;
       const result = await userService.becomeHost(userId);
-      
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -181,7 +181,7 @@ async cleanupFavorites(req, res, next) {
     try {
       const userId = req.user.userId;
       const result = await userService.becomeGuest(userId);
-      
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -199,7 +199,7 @@ async cleanupFavorites(req, res, next) {
     try {
       const userId = req.user.userId;
       const user = await userService.getUserProfile(userId);
-      
+
       res.status(200).json({
         success: true,
         data: {
@@ -225,7 +225,7 @@ async cleanupFavorites(req, res, next) {
 
       const userId = req.user.userId;
       const user = await userService.updateUserProfile(userId, req.body);
-      
+
       res.status(200).json({
         success: true,
         message: 'Profil mis à jour avec succès',
@@ -240,34 +240,34 @@ async cleanupFavorites(req, res, next) {
 
   async uploadAvatar(req, res, next) {
     try {
-        const userId = req.user.userId;
+      const userId = req.user.userId;
 
-        // Vérifier si une image a été uploadée
-        if (!req.imageUrls || req.imageUrls.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Veuillez fournir un fichier image pour l\'avatar.'
-            });
-        }
-        
-        // Utiliser la première URL d'image
-        const avatarUrl = req.imageUrls[0];
-        
-        // Mise à jour de l'utilisateur dans la DB
-        const user = await userService.updateUserAvatar(userId, avatarUrl);
-
-        res.status(200).json({
-            success: true,
-            message: 'Avatar mis à jour avec succès',
-            data: {
-                user,
-                avatarUrl: avatarUrl
-            }
+      // Vérifier si une image a été uploadée
+      if (!req.imageUrls || req.imageUrls.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Veuillez fournir un fichier image pour l\'avatar.'
         });
+      }
+
+      // Utiliser la première URL d'image
+      const avatarUrl = req.imageUrls[0];
+
+      // Mise à jour de l'utilisateur dans la DB
+      const user = await userService.updateUserAvatar(userId, avatarUrl);
+
+      res.status(200).json({
+        success: true,
+        message: 'Avatar mis à jour avec succès',
+        data: {
+          user,
+          avatarUrl: avatarUrl
+        }
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-}
+  }
 
 
   // Mettre à jour le profil d'hôte
@@ -284,7 +284,7 @@ async cleanupFavorites(req, res, next) {
 
       const userId = req.user.userId;
       const user = await userService.updateHostProfile(userId, req.body);
-      
+
       res.status(200).json({
         success: true,
         message: 'Profil d\'hôte mis à jour avec succès',
@@ -311,9 +311,9 @@ async cleanupFavorites(req, res, next) {
 
       const userId = req.user.userId;
       const { currentPassword, newPassword } = req.body;
-      
+
       const result = await userService.changePassword(userId, currentPassword, newPassword);
-      
+
       res.status(200).json({
         success: true,
         message: result.message
@@ -328,9 +328,9 @@ async cleanupFavorites(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
-      
+
       const result = await userService.getAllHosts(page, limit);
-      
+
       res.status(200).json({
         success: true,
         data: result
@@ -346,7 +346,7 @@ async cleanupFavorites(req, res, next) {
       const { query, role } = req.query;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
-      
+
       if (!query) {
         return res.status(400).json({
           success: false,
@@ -355,7 +355,7 @@ async cleanupFavorites(req, res, next) {
       }
 
       const result = await userService.searchUsers(query, role, page, limit);
-      
+
       res.status(200).json({
         success: true,
         data: result
@@ -370,7 +370,7 @@ async cleanupFavorites(req, res, next) {
     try {
       const { userId } = req.params;
       const user = await userService.getUserProfile(userId);
-      
+
       // Retourner les informations de l'utilisateur même s'il n'est pas actuellement hôte
       // Car un utilisateur peut avoir été hôte avant ou peut le devenir
       const publicProfile = {
@@ -384,7 +384,7 @@ async cleanupFavorites(req, res, next) {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
-      
+
       res.status(200).json({
         success: true,
         data: {
@@ -401,7 +401,7 @@ async cleanupFavorites(req, res, next) {
     try {
       const { userId } = req.params;
       const user = await userService.getUserProfile(userId);
-      
+
       res.status(200).json({
         success: true,
         data: {
@@ -427,13 +427,51 @@ async cleanupFavorites(req, res, next) {
       }
 
       const user = await userService.updateFcmToken(userId, fcmToken);
-      
+
       res.status(200).json({
         success: true,
         message: 'Token FCM enregistré avec succès',
         data: {
           user
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Bloquer un utilisateur
+  async blockUser(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { userId: targetUserId } = req.params;
+      const result = await userService.blockUser(userId, targetUserId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Débloquer un utilisateur
+  async unblockUser(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { userId: targetUserId } = req.params;
+      const result = await userService.unblockUser(userId, targetUserId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Obtenir la liste des utilisateurs bloqués
+  async getBlockedUsers(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const blockedUsers = await userService.getBlockedUsers(userId);
+      res.status(200).json({
+        success: true,
+        data: blockedUsers
       });
     } catch (error) {
       next(error);

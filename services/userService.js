@@ -152,30 +152,30 @@ class UserService {
 
   async updateUserAvatar(userId, avatarUrl) {
     try {
-        const user = await User.findByIdAndUpdate(
-            userId,
-            // $set est utilisé pour mettre à jour uniquement le champ 'avatar'
-            { $set: { avatar: avatarUrl } },
-            // { new: true } retourne le document mis à jour
-            // { runValidators: true } s'assure que les validateurs du schéma sont exécutés
-            { new: true, runValidators: true } 
-        );
+      const user = await User.findByIdAndUpdate(
+        userId,
+        // $set est utilisé pour mettre à jour uniquement le champ 'avatar'
+        { $set: { avatar: avatarUrl } },
+        // { new: true } retourne le document mis à jour
+        // { runValidators: true } s'assure que les validateurs du schéma sont exécutés
+        { new: true, runValidators: true }
+      );
 
-        if (!user) {
-            throw new Error('Utilisateur non trouvé');
-        }
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
+      }
 
-        // Optionnel: Ici, vous pourriez ajouter une logique pour supprimer l'ancien fichier avatar du disque
-        // if (user.avatar && user.avatar !== avatarUrl) {
-        //   const oldFilename = user.avatar.split('/').pop();
-        //   // Supprimer le fichier (nécessite le module 'fs')
-        // }
+      // Optionnel: Ici, vous pourriez ajouter une logique pour supprimer l'ancien fichier avatar du disque
+      // if (user.avatar && user.avatar !== avatarUrl) {
+      //   const oldFilename = user.avatar.split('/').pop();
+      //   // Supprimer le fichier (nécessite le module 'fs')
+      // }
 
-        return user;
+      return user;
     } catch (error) {
-        throw error;
+      throw error;
     }
-}
+  }
 
   // Mettre à jour le profil utilisateur
   async updateUserProfile(userId, updateData) {
@@ -336,7 +336,7 @@ class UserService {
     }
   }
 
-// GESTION DES FAVORIS (SANS ASYNC/AWAIT)
+  // GESTION DES FAVORIS (SANS ASYNC/AWAIT)
   // ------------------------------------------------------------------
 
   // 1. Gérer l'ajout/retrait de favori
@@ -451,6 +451,70 @@ class UserService {
       }
 
       return user;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // GESTION DU BLOCAGE
+  // ------------------------------------------------------------------
+
+  // Bloquer un utilisateur
+  async blockUser(userId, targetUserId) {
+    try {
+      if (userId.toString() === targetUserId.toString()) {
+        throw new Error('Vous ne pouvez pas vous bloquer vous-même');
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      if (!user.blockedUsers.includes(targetUserId)) {
+        user.blockedUsers.push(targetUserId);
+        await user.save();
+      }
+
+      return {
+        success: true,
+        message: 'Utilisateur bloqué avec succès'
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Débloquer un utilisateur
+  async unblockUser(userId, targetUserId) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      user.blockedUsers = user.blockedUsers.filter(
+        id => id.toString() !== targetUserId.toString()
+      );
+      await user.save();
+
+      return {
+        success: true,
+        message: 'Utilisateur débloqué avec succès'
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Obtenir la liste des utilisateurs bloqués
+  async getBlockedUsers(userId) {
+    try {
+      const user = await User.findById(userId).populate('blockedUsers', 'firstName lastName avatar email');
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      return user.blockedUsers;
     } catch (error) {
       throw error;
     }
