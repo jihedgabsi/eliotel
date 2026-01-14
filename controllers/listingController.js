@@ -290,7 +290,8 @@ class ListingController {
         });
       }
 
-      const listing = await listingService.getListingById(listingId);
+      const requestingUserId = req.user ? req.user.userId : null;
+      const listing = await listingService.getListingById(listingId, requestingUserId);
 
       res.status(200).json({
         success: true,
@@ -332,9 +333,8 @@ class ListingController {
     try {
       const { hostId } = req.params;
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-
-      const result = await listingService.getHostListings(hostId, page, limit);
+      const requestingUserId = req.user ? req.user.userId : null;
+      const result = await listingService.getHostListings(hostId, page, limit, requestingUserId);
 
       res.status(200).json({
         success: true,

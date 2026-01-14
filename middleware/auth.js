@@ -5,7 +5,7 @@ const User = require('../models/User');
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -14,13 +14,20 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
+
     // Vérifier que l'utilisateur existe toujours
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Token invalide. Utilisateur non trouvé.'
+      });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Votre compte a été suspendu pour non-respect des conditions d\'utilisation (EULA).'
       });
     }
 
@@ -34,7 +41,7 @@ const auth = async (req, res, next) => {
         message: 'Token invalide.'
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -75,17 +82,17 @@ const requireAdmin = (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       const user = await User.findById(decoded.userId);
-      
+
       if (user) {
         req.user = decoded;
         req.userDoc = user;
       }
     }
-    
+
     next();
   } catch (error) {
     // En cas d'erreur, continuer sans authentification

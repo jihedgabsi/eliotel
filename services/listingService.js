@@ -326,13 +326,24 @@ class ListingService {
   }
 
   // Obtenir un listing par ID
-  async getListingById(listingId) {
+  async getListingById(listingId, requestingUserId = null) {
     try {
       const listing = await Listing.findById(listingId)
         .populate('host', 'firstName lastName avatar role createdAt hostProfile');
 
       if (!listing) {
         throw new Error('Annonce non trouvée');
+      }
+
+      // Vérifier si l'hôte est bloqué par l'utilisateur
+      if (requestingUserId) {
+        const blockedUsers = await this._getBlockedUsers(requestingUserId);
+        const isBlocked = blockedUsers.some(
+          id => id.toString() === listing.host._id.toString()
+        );
+        if (isBlocked) {
+          throw new Error('Contenu non disponible');
+        }
       }
 
       return listing;
@@ -342,16 +353,33 @@ class ListingService {
   }
 
   // Obtenir les listings d'un hôte
-  async getHostListings(hostId, page = 1, limit = 10) {
+  async getHostListings(hostId, page = 1, limit = 10, requestingUserId = null) {
     try {
       const skip = (page - 1) * limit;
 
-      const listings = await Listing.find({ host: hostId })
+      // Si l'hôte est bloqué par l'utilisateur, ne rien retourner
+      if (requestingUserId) {
+        const blockedUsers = await this._getBlockedUsers(requestingUserId);
+        if (blockedUsers.some(id => id.toString() === hostId.toString())) {
+          return {
+            listings: [],
+            pagination: {
+              currentPage: page,
+              totalPages: 0,
+              totalListings: 0,
+              hasNext: false,
+              hasPrev: false
+            }
+          };
+        }
+      }
+
+      const listings = await Listing.find({ host: hostId, status: 'active' })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
 
-      const total = await Listing.countDocuments({ host: hostId });
+      const total = await Listing.countDocuments({ host: hostId, status: 'active' });
 
       return {
         listings,

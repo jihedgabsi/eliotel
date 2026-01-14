@@ -18,7 +18,7 @@ router.get('/', optionalAuth, listingController.getListings);
 router.get('/search/available', optionalAuth, listingController.searchAvailableListings);
 router.get('/search/nearby', [validateCoordinates, optionalAuth], listingController.searchNearby);
 router.get('/suggestions', listingController.getLocationSuggestions);
-router.get('/host/:hostId', validateUserObjectId, listingController.getListingsByHostId);
+router.get('/host/:hostId', [validateUserObjectId, optionalAuth], listingController.getListingsByHostId);
 
 // Routes spécifiques AVANT l'authentification pour éviter les conflits
 router.get('/my/listings', auth, requireHost, listingController.getHostListings);
